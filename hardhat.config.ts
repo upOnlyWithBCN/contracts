@@ -74,6 +74,9 @@ const config: HardhatUserConfig = {
       accounts: [],
     },
   },
+  etherscan: {
+    apiKey: process.env.AVAX_API_KEY,
+  },
 };
 
 export default config;

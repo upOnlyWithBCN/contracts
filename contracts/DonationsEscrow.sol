@@ -22,12 +22,16 @@ contract DonationsEscrow is Managerial {
   event DonationRefunded(address indexed donor, uint256 amount);
   event CampaignCompleted(uint256 amount);
 
-  function init(address _recipientAddress, address _currencyAddress) public {
+  function init(
+    address _adminAddress,
+    address _recipientAddress,
+    address _currencyAddress
+  ) public {
     recipientAddress = payable(_recipientAddress);
     currencyAddress = _currencyAddress;
     completed = false;
 
-    _grantRole(MANAGER_ROLE, msg.sender);
+    _grantRole(MANAGER_ROLE, _adminAddress);
     _grantRole(MANAGER_ROLE, _recipientAddress);
   }
 
@@ -53,6 +57,7 @@ contract DonationsEscrow is Managerial {
 
   function releaseDonations() public onlyManagers {
     require(completed == true, "Please end this campaign first");
+    require(donorAddresses.length > 0, "No donations to release");
 
     uint256 totalDonations = IERC20(currencyAddress).balanceOf(address(this));
     IERC20(currencyAddress).safeTransfer(recipientAddress, totalDonations);
@@ -61,6 +66,7 @@ contract DonationsEscrow is Managerial {
 
   function refundDonations() public onlyManagers {
     require(completed == true, "Please end this campaign first");
+    require(donorAddresses.length > 0, "No donations to refund");
 
     uint256 donorSize = donorAddresses.length;
     for (uint256 i = 0; i < donorSize; i++) {

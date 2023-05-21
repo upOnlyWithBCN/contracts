@@ -11,11 +11,13 @@ contract DonationsEscrowFactory is Managerial, CloneFactory {
 
   // mapping(uint256 => bool) public activeProjects;
 
-  // event ProjectActivated(address projectId);
+  event ProjectActivated(address escrowAddress);
+
   // event ProjectDeactivated(address projectId);
 
   // Set creator as admin and manager
   constructor(address _currencyAddress) {
+    require(_currencyAddress != address(0), "A valid address is required");
     currencyAddress = _currencyAddress;
 
     _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -28,15 +30,11 @@ contract DonationsEscrowFactory is Managerial, CloneFactory {
   }
 
   // Create a new escrow clone for each project, and delegateCalls to it
-  function createEscrow(address recipient)
-    public
-    onlySuperAdmin
-    returns (address escrow)
-  {
+  function createEscrow(address recipient) public onlySuperAdmin {
     DonationsEscrow escrow = DonationsEscrow(createClone(escrowAddress));
-    escrow.init(recipient, currencyAddress);
+    escrow.init(msg.sender, recipient, currencyAddress);
     // activateProject(escrow);
-    return address(escrow);
+    emit ProjectActivated(address(escrow));
   }
 
   // function activateProject(address projectId) private {
