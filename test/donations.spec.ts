@@ -156,12 +156,17 @@ describe("DonationsEscrow", async () => {
   });
 
   it("Refund second escrow", async () => {
+    expect(secondEscrow.refundDonations()).to.revertedWith(
+      "Please end this campaign first"
+    );
     await secondEscrow.completeCampaign();
   });
 
   it("Refund second escrow", async () => {
     expect(await secondEscrow.refundDonations())
       .to.emit(secondEscrow, "DonationRefunded")
-      .withArgs(donor.address, 500);
+      .withArgs(donor.address, 500)
+      .and.to.emit(secondEscrow, "DonationRefunded")
+      .withArgs(admin.address, 500);
   });
 });
