@@ -12,9 +12,16 @@ const main = async () => {
   const donationsEscrow = await DonationsEscrow.deploy();
   const donationsEscrowFactory = await DonationsEscrowFactory.deploy(
     process.env.CURRENCY_ADDRESS
-  ); // Need treasury address && usdc address
+  ); // Need usdc address
   await donationsEscrowFactory.deployed();
-  console.log("Contract deployed to:", donationsEscrowFactory.address);
+  await donationsEscrowFactory.functions.setEscrowAddress(
+    donationsEscrow.address
+  );
+  console.log("DonationsEscrow contract deployed to:", donationsEscrow.address);
+  console.log(
+    "DonationsEscrowFactory contract deployed to:",
+    donationsEscrowFactory.address
+  );
 };
 
 const runMain = async () => {
