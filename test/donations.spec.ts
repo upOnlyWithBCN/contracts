@@ -1,8 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { deployContract } from "ethereum-waffle";
-import { Wallet } from "ethers";
-import { ethers, waffle } from "hardhat";
+import { ethers } from "hardhat";
 import { Address } from "hardhat-deploy/dist/types";
 import DonationsEscrowArtifact from "../artifacts/contracts/DonationsEscrow.sol/DonationsEscrow.json";
 import DonationsEscrowFactoryArtifact from "../artifacts/contracts/DonationsEscrowFactory.sol/DonationsEscrowFactory.json";
@@ -11,6 +10,7 @@ import { ERC20 } from "../typechain-types/@openzeppelin/contracts/token/ERC20/ER
 
 // Need to set up the tokens first
 describe("DonationsEscrow", async () => {
+  const donationAmount = 500;
   let donationsEscrowFactory: DonationsEscrowFactory;
   let donationsEscrow: DonationsEscrow;
   let USDC: ERC20;
@@ -20,11 +20,9 @@ describe("DonationsEscrow", async () => {
   let escrowClone: DonationsEscrow;
   let escrowCloneAddress: Address;
   let secondEscrow: DonationsEscrow;
-  let testAcc: Wallet;
 
   const deployContractFixture = async () => {
     [admin, donorRecipient, donor] = await ethers.getSigners();
-    [testAcc] = await waffle.provider.getWallets();
     const usdcFactory = await ethers.getContractFactory("USDCoin");
     USDC = (await usdcFactory.deploy()) as ERC20;
     await USDC.deployed();
@@ -55,7 +53,7 @@ describe("DonationsEscrow", async () => {
       "ProjectActivated"
     );
 
-    escrowCloneAddress = receipt.events![2].args![0];
+    escrowCloneAddress = receipt.events![3].args![0];
   });
 
   it("Non-admin setting escrow address", async () => {
@@ -73,37 +71,38 @@ describe("DonationsEscrow", async () => {
       admin
     ) as DonationsEscrow;
 
-    console.log(donor.address, "address");
-    console.log(testAcc.address, "address");
     await expect(
-      escrowClone.connect(donor).addDonation(donor.address, 500)
+      escrowClone.connect(donor).addDonation(donor.address, donationAmount)
     ).to.revertedWith("Caller is not a superadmin");
   });
-  /*
-  it("Add donation", async () => {
-    await USDC.approve(escrowCloneAddress, 10000);
 
-    await escrowClone.addDonation(500, donor.address);
+  it("Add donation", async () => {
+    await USDC.approve(admin.address, 10000);
+
+    await USDC.transfer(escrowClone.address, donationAmount);
+
+    await escrowClone.addDonation(donor.address, donationAmount);
 
     expect(await escrowClone.getDonorDonationAmount(donor.address)).to.equal(
-      500
+      donationAmount
     );
 
-    await USDC.approve(escrowCloneAddress, 500);
+    await USDC.approve(escrowCloneAddress, donationAmount);
 
-    const txn = await escrowClone.addDonation(500, admin.address);
+    USDC.transfer(escrowClone.address, donationAmount);
+    const txn = await escrowClone.addDonation(admin.address, donationAmount);
 
     expect(txn)
       .to.emit(escrowClone, "DonationReceived")
-      .withArgs(admin.address, 500);
+      .withArgs(admin.address, donationAmount);
 
     expect(await escrowClone.getDonorDonationAmount(admin.address)).to.equal(
-      500
+      donationAmount
     );
   });
 
   it("Unable to release donation prior to completing campaign", async () => {
-    expect(escrowClone.releaseDonations()).to.be.revertedWith(
+    await expect(escrowClone.releaseDonations()).to.be.revertedWith(
       "Please end this campaign first"
     );
   });
@@ -115,9 +114,9 @@ describe("DonationsEscrow", async () => {
   });
 
   it("Unable to add donation after completing campaign", async () => {
-    await expect(escrowClone.addDonation(500, donor.address)).to.revertedWith(
-      "The donation period for this campaign has ended"
-    );
+    await expect(
+      escrowClone.addDonation(donor.address, donationAmount)
+    ).to.revertedWith("The donation period for this campaign has ended");
   });
 
   it("Release donations", async () => {
@@ -138,29 +137,29 @@ describe("DonationsEscrow", async () => {
     ).wait();
 
     secondEscrow = new ethers.Contract(
-      receipt.events![2].args![0],
+      receipt.events![3].args![0],
       DonationsEscrowArtifact.abi,
       admin
     ) as DonationsEscrow;
 
     await USDC.approve(secondEscrow.address, 1000);
 
-    await secondEscrow.addDonation(500, donor.address);
+    await USDC.transfer(secondEscrow.address, donationAmount);
+    await secondEscrow.addDonation(donor.address, donationAmount);
 
     expect(await secondEscrow.getDonorDonationAmount(admin.address)).to.equal(
       0
     );
 
     expect(await secondEscrow.getDonorDonationAmount(donor.address)).to.equal(
-      500
+      donationAmount
     );
 
-    await USDC.approve(secondEscrow.address, 500);
-
-    await secondEscrow.addDonation(500, admin.address);
+    await USDC.transfer(secondEscrow.address, donationAmount);
+    await secondEscrow.addDonation(admin.address, donationAmount);
 
     expect(await secondEscrow.getDonorDonationAmount(admin.address)).to.equal(
-      500
+      donationAmount
     );
   });
 
@@ -174,9 +173,8 @@ describe("DonationsEscrow", async () => {
   it("Refund second escrow", async () => {
     expect(await secondEscrow.refundDonations())
       .to.emit(secondEscrow, "DonationRefunded")
-      .withArgs(donor.address, 500)
+      .withArgs(donor.address, donationAmount)
       .and.to.emit(secondEscrow, "DonationRefunded")
-      .withArgs(admin.address, 500);
+      .withArgs(admin.address, donationAmount);
   });
-  */
 });

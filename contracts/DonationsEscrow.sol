@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 import { Managerial } from "./Managerial.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "hardhat/console.sol";
 
 contract DonationsEscrow is Managerial {
   using SafeERC20 for IERC20;
@@ -42,7 +41,7 @@ contract DonationsEscrow is Managerial {
   }
 
   function addDonation(address _donorAddress, uint256 amount)
-    public
+    external
     onlySuperAdmin
   {
     require(_donorAddress != address(0), "A valid address is required");

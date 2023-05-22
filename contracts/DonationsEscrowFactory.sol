@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 import { Managerial } from "./Managerial.sol";
 import { DonationsEscrow } from "./DonationsEscrow.sol";
 import { CloneFactory } from "./CloneFactory.sol";
-import "hardhat/console.sol";
 
 contract DonationsEscrowFactory is Managerial, CloneFactory {
   address public immutable currencyAddress;
@@ -27,7 +26,6 @@ contract DonationsEscrowFactory is Managerial, CloneFactory {
 
   // Allow for upgrades in the future
   function setEscrowAddress(address _escrowAddress) external onlySuperAdmin {
-    console.log("address = ", _escrowAddress);
     escrowAddress = _escrowAddress;
   }
 
