@@ -15,6 +15,7 @@ contract DonationsEscrow is Managerial {
   mapping(address => bool) public existingDonors;
   address[] public donorAddresses;
 
+  bool public initialised = false;
   bool public completed;
 
   event DonationReceived(address indexed donor, uint256 amount);
@@ -27,32 +28,39 @@ contract DonationsEscrow is Managerial {
     address _recipientAddress,
     address _currencyAddress
   ) public {
+    require(initialised == false, "This escrow has already been initialised");
+
     recipientAddress = payable(_recipientAddress);
     currencyAddress = _currencyAddress;
     completed = false;
 
+    _grantRole(DEFAULT_ADMIN_ROLE, _adminAddress);
     _grantRole(MANAGER_ROLE, _adminAddress);
     _grantRole(MANAGER_ROLE, _recipientAddress);
+    initialised = true;
   }
 
-  function addDonation(uint256 amount) public {
+  function addDonation(address _donorAddress, uint256 amount)
+    external
+    onlySuperAdmin
+  {
+    require(_donorAddress != address(0), "A valid address is required");
     require(amount > 0, "Please input a valid donation amount");
     require(
       completed == false,
       "The donation period for this campaign has ended"
     );
 
-    IERC20(currencyAddress).safeTransferFrom(msg.sender, address(this), amount);
-    emit DonationReceived(msg.sender, amount);
+    emit DonationReceived(_donorAddress, amount);
 
     uint256 existingDonation = 0;
-    if (existingDonors[msg.sender] == true) {
-      existingDonation = donations[msg.sender];
+    if (existingDonors[_donorAddress] == true) {
+      existingDonation = donations[_donorAddress];
     }
     existingDonation += amount;
-    existingDonors[msg.sender] = true;
-    donations[msg.sender] = existingDonation;
-    donorAddresses.push(payable(msg.sender));
+    existingDonors[_donorAddress] = true;
+    donations[_donorAddress] = existingDonation;
+    donorAddresses.push(payable(_donorAddress));
   }
 
   function releaseDonations() public onlyManagers {
@@ -83,12 +91,12 @@ contract DonationsEscrow is Managerial {
     }
   }
 
-  function getDonorDonationAmount(address donor)
+  function getDonorDonationAmount(address _donorAddress)
     public
     view
     returns (uint256 amount)
   {
-    return donations[donor];
+    return donations[_donorAddress];
   }
 
   function completeCampaign() external onlyManagers {
